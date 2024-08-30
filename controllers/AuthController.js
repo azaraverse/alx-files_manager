@@ -4,23 +4,23 @@ const redisClient = require('../utils/redis');
 const sha1 = require('sha1');
 const v4 = uuid.v4;
 
-// write a decrypt function
-function decrypt(encrypted) {
-  return Buffer.from(encrypted, 'base64').toString('utf-8');
+// write a decode function
+function decode(encoded) {
+  return Buffer.from(encoded, 'base64').toString('utf-8');
 };
 
 class AuthController {
   static async getConnect(req, res) {
     const auth_key = req.headers.authorization;
-    const encrypted = auth_key.split(' ')[1];
+    const encoded = auth_key.split(' ')[1];
 
-    if (!encrypted) {
+    if (!encoded) {
       return res.status(401).json({ "error": "Unauthorized" });
     }
 
-    const decrypted = decrypt(encrypted);
-    const email = decrypted.split(':')[0];
-    const password = decrypted.split(':')[1];
+    const decoded = decode(encoded);
+    const email = decoded.split(':')[0];
+    const password = decoded.split(':')[1];
 
     const user = await dbClient.users.findOne({ email });
     if (!user || user.password !== sha1(password)) {
@@ -52,4 +52,4 @@ class AuthController {
   };
 };
 
-module.exports = AuthController;
+module.exports = AuthController, decode;
