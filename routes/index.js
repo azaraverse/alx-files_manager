@@ -21,4 +21,7 @@ router.get('/users/me', UsersController.getMe);
 // files upload endpoint
 router.post('/files', FilesController.postUpload);
 
+// files retrieval endpoints
+router.get('/files/:id', FilesController.getShow);
+
 module.exports = router;

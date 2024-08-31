@@ -100,6 +100,35 @@ class FilesController {
       });
     }
   };
+
+  static async getShow(req, res) {
+    const token = req.header('X-Token');
+    const id = req.params.id;
+
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const files = await dbClient.files.findOne({ _id: ObjectId(id), userId: ObjectId(userId) });
+    if (!files || !files.id) {
+      return res.status(404).json({ error: "Not found" });
+    }
+
+    return res.status(200).json({
+      id: files._id,
+      userId: files.userId,
+      name: files.name,
+      type: files.type,
+      isPublic: files.isPublic,
+      parentId: files.parentId
+    });
+  };
 };
 
 module.exports = FilesController;
