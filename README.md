@@ -14,4 +14,5 @@ Inside the folder utils, create a file `redis.js` that contains the class `Redis
 - an asynchronous function `get` that takes a string key as argument and returns the Redis value stored for this key
 - an asynchronous function `set` that takes a string key, a value and a duration in second as arguments to store it in Redis (with an expiration set by the duration argument)
 - an asynchronous function `del` that takes a string key as argument and remove the value in Redis for this key
+
 After the class definition, create and export an instance of `RedisClient` called `redisClient`.
