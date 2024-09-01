@@ -16,3 +16,5 @@ Inside the folder utils, create a file `redis.js` that contains the class `Redis
 - an asynchronous function `del` that takes a string key as argument and remove the value in Redis for this key
 
 After the class definition, create and export an instance of `RedisClient` called `redisClient`.
+
+File path: [redis.js](./utils/redis.js)
