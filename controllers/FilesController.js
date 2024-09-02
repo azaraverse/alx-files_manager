@@ -150,7 +150,7 @@ class FilesController {
 
     const query = {
       userId: ObjectId(userId),
-      parentId
+      parentId,
     };
 
     const files = await dbClient.files.aggregate([
