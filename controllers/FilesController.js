@@ -287,7 +287,7 @@ class FilesController {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    if (!file.isPublic && !userId) {
+    if ((!file.isPublic && !userId) || (userId && file.userId.toString() !== userId && !file.isPublic)) {
       return res.status(404).json({ error: 'Not found' });
     }
 
@@ -301,7 +301,7 @@ class FilesController {
 
     const fileName = file.name;
     // console.log(fileName)
-    const mimeType = mime.lookup(fileName);
+    const mimeType = mime.contentType(fileName);
 
     if (mimeType) {
       try {
