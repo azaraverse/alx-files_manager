@@ -135,7 +135,6 @@ class FilesController {
 
   static async getIndex(req, res) {
     const token = req.header('X-Token');
-    const parentId = req.query.parentId || 0;
     const pageNum = parseInt(req.query.page, 10) || 0;
 
     if (!token) {
@@ -149,10 +148,35 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const query = {
-      userId: ObjectId(userId),
-      parentId,
-    };
+    const parentId = req.query.parentId || '0';
+
+    let query;
+    let folderIds = [];
+
+    if (parentId === '0') {
+      // find all files with parentId 0 or parentId matching _id of any file
+      const folders = await dbClient.files.find({
+        userId: ObjectId(userId),
+        type: 'folder',
+      }).toArray();
+
+      folderIds = folders.map((folder) => folder._id.toString());
+      // console.log('Folder IDs:', folderIds);
+
+      query = {
+        userId: ObjectId(userId),
+        $or: [
+          { parentId: 0 },
+          { parentId: { $in: folderIds } },
+        ],
+      };
+    } else {
+      query = {
+        userId: ObjectId(userId),
+        parentId,
+      };
+    }
+    // console.log('Constructed query:', query);
 
     const files = await dbClient.files.aggregate([
       {
