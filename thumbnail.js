@@ -1,14 +1,13 @@
 const thumbnail = require('image-thumbnail');
+const fs = require('fs');
 
-async function generateThumbnail() {
-  try {
-    const options = { width: 100, height: 100, responseType: 'base64' };
-    const thumb = await thumbnail('./image1.png', options);
+const filePath = './image.jpg';
+const option = { width: 250 };
 
-    console.log(thumb);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-generateThumbnail();
+thumbnail(filePath, option)
+  .then(thumbnail => {
+    const thumbPath = `${filePath}_250`;
+    fs.writeFileSync(thumbPath, thumbnail);
+    console.log(`Thumbnail saved to ${thumbPath}`);
+  })
+  .catch(err => console.error(err));

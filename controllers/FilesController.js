@@ -2,16 +2,14 @@ const fs = require('fs');
 const uuid = require('uuid');
 const path = require('path');
 const mime = require('mime-types');
+const Queue = require('bull');
 const { ObjectId } = require('mongodb');
 const redisClient = require('../utils/redis');
 const dbClient = require('../utils/db');
 
 const { v4 } = uuid;
 
-// write a decode function
-function decode(encoded) {
-  return Buffer.from(encoded, 'base64').toString('utf-8');
-}
+const fileQueue = new Queue('fileQueue');
 
 class FilesController {
   static async postUpload(req, res) {
@@ -73,6 +71,7 @@ class FilesController {
         parentId,
       });
     }
+
     const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
 
     if (!fs.existsSync(folderPath)) {
@@ -82,8 +81,8 @@ class FilesController {
     const fileName = v4();
     const localPath = path.join(folderPath, fileName);
 
-    const decodedFileData = decode(data);
-    fs.writeFileSync(localPath, decodedFileData);
+    const decodedFileData = Buffer.from(data, 'base64');
+    await fs.promises.writeFile(localPath, decodedFileData);
 
     const newFile = await dbClient.files.insertOne({
       userId: user._id,
@@ -93,6 +92,14 @@ class FilesController {
       parentId,
       localPath,
     });
+
+    if (type === 'image') {
+      const fileJob = await fileQueue.add({
+        userId: userId.toString(),
+        fileId: newFile.insertedId.toString(),
+      });
+      console.log(`Job added with ID: ${fileJob.id}`);
+    }
 
     return res.status(201).json({
       id: newFile.insertedId,
@@ -278,6 +285,7 @@ class FilesController {
   static async getFile(req, res) {
     const token = req.header('X-Token');
     const { id } = req.params;
+    const { size } = req.query;
 
     const key = `auth_${token}`;
     const userId = await redisClient.get(key);
@@ -300,21 +308,28 @@ class FilesController {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    const fileName = file.name;
-    // console.log(fileName)
-    const mimeType = mime.contentType(fileName);
+    let filePath = file.localPath;
 
-    if (mimeType) {
-      try {
-        const data = fs.readFileSync(file.localPath);
-        res.setHeader('Content-Type', mimeType);
-        return res.status(200).send(data);
-      } catch (err) {
+    if (size && ['500', '250', '100'].includes(size)) {
+      const thumbnailPath = `${file.localPath}_${size}`;
+      console.log(`Looking for thumbnail: ${thumbnailPath}`);
+      if (fs.existsSync(thumbnailPath)) {
+        filePath = thumbnailPath;
+      } else {
         return res.status(404).json({ error: 'Not found' });
       }
     }
 
-    return res.status(400).json({ error: 'Unknown MIME type' });
+    try {
+      const data = await fs.promises.readFile(filePath);
+      const mimeType = mime.lookup(file.name) || 'application/octet-stream';
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', data.length);
+      return res.status(200).send(data);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      return res.status(404).json({ error: 'Not found' });
+    }
   }
 }
 

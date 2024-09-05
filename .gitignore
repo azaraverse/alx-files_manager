@@ -2,5 +2,6 @@ node_modules/
 *main.js
 package-lock.json
 *.png
+*.jpg
 *.rdb
 *.py
